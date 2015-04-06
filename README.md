@@ -7,7 +7,7 @@ Python is required.
 Launch the script
 =================
 
-`python checkNeighbours.py -i <Input file> -b <target bacteria> -r <dir for dwn files> -f <file type> -u <number genes upstream> -d <number genes downstream> -o <results dir>`
+python checkNeighbours.py -i `<Input file>` -b `<target bacteria>` -r `<dir for dwn files>` -f `<file type>` -u `<number genes upstream>` -d `<number genes downstream>` -o `<results dir>`
 
 Arguments
 =========
