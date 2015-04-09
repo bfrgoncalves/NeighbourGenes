@@ -2,7 +2,7 @@
 
 This program checks for the neighbor genes by syncing and downloading the desired files from ftp://ftp.ncbi.nlm.nih.gov/genomes/Bacteria/ and by performing BLASTp searches.
 
-Python is required.
+Python, Numpy, Biopython and HTSeq are required.
 
 Launch the script
 =================
@@ -19,3 +19,11 @@ Arguments
 * `-u` Number of genes upstream -> Number of result genes upstream of the query sequence
 * `-d` Number of genes downstream -> Number of result genes downstream of the query sequence
 * `-o` Target directory for the results -> Directory where the files with the genes upstream and downstream of the query genes will be placed
+
+
+Test Command
+============
+
+On the cmd line at the application directory type:
+
+`python checkNeighbors.py -i test.fasta -b Streptococcus_pneumoniae_670_6B -r downloads -f .faa -u 3 -d 3 -o results`

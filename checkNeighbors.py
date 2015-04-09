@@ -7,7 +7,6 @@ import argparse
 import shutil
 
 from Bio import SeqIO
-from BCBio import GFF
 import HTSeq
 from Bio.Blast import NCBIXML
 from Bio.Blast.Applications import NcbiblastnCommandline
