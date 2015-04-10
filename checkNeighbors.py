@@ -50,7 +50,7 @@ def main():
 	
 	DatabaseName = os.path.join(DataBaseFolder,target_bug)
 
-	queryNames, querySequences = ReadFASTAFile(queryFile)
+	queryNames, querySequences, sequenceLengths = ReadFASTAFile(queryFile)
 
 	countFiles = 0
 	countNames = 0
@@ -63,28 +63,28 @@ def main():
 			os.makedirs(PathFolderName)
 
 		for fl in downloadedFiles:
+			print
 			print '-------------------------------------------'
-			print 'Search target gene on ' + fl
 			dirName = fl.split('/')[len(fl.split('/'))-2]
 			fileName = fl.split('/')[len(fl.split('/'))-1].split('.')[0]
 			PathW = os.path.join(PathFolderName,dirName)
 			if not os.path.isdir(PathW):
 				os.makedirs(PathW)
 			PathW = os.path.join(PathW,fileName+'result.faa')
-			NameGenes, SequenceGenes = ReadFASTAFile(fl)
+			NameGenes, SequenceGenes, lenRefSeq = ReadFASTAFile(fl)
 			Create_Blastdb(fl, True, DatabaseName)
 			print 'Performing BLASTp search'
-			matchGene = BLASTp(queryFileToUse, DatabaseName, DataBaseFolder)
+			matchGene = BLASTp(queryFileToUse, DatabaseName, DataBaseFolder, queryNames, sequenceLengths)
 			ToWrite = GetNeighbours(NameGenes,SequenceGenes,matchGene, Names, querySequences[countNames], numberUpstream, numberDownstream)
-			print 'Writing the results'
-			WriteResults(ToWrite, PathW)
+			WriteResults(ToWrite, PathW, target_dir+'/'+fileName+file_type)
 
 			countFiles+=1
 		countNames +=1
 		os.remove(queryFileToUse)
 
 	shutil.rmtree(DataBaseFolder)
-	print 'DONE!'
+	print '*************************************'
+	print '---------------DONE!-----------------'
 
 
 
@@ -119,18 +119,22 @@ def Create_Blastdb( questionDB, dbtypeProt, dbName ):
         print "BLAST DB files found. Using existing DBs.."  
     return( dbName )
 
-def BLASTp(queryFile, dbName, blast_out_path):
+def BLASTp(queryFile, dbName, blast_out_path, queryNames, sequenceLengths):
 	blast_out_file = os.path.join(blast_out_path,'blastOut.xml')
 	cline = NcbiblastpCommandline(query=queryFile, db=dbName, out=blast_out_file, outfmt=5)
 	blast_records = runBlastParser(cline,blast_out_file, "")
 	matchGene = ''
 	score = -1
 	for blast_record in blast_records:
+		queryGeneIndex = queryNames.index(blast_record.query.strip('|'))
+		querySequenceLength = sequenceLengths[queryGeneIndex]
 		for alignment in blast_record.alignments:
 			for match in alignment.hsps:
-				if score < match.score:
-					matchGene = alignment.hit_def
-					score = match.score
+				identity_length_ratio = float(match.identities)/float(querySequenceLength)
+				if identity_length_ratio >= 0.8:
+					if score < match.score:
+						matchGene = alignment.hit_def
+						score = match.score
 
 	return matchGene
 
@@ -153,26 +157,31 @@ def GetNeighbours(arrayOfGenes, arrayOfSequences, targetGene, queryName, querySe
 			except IndexError:
 				print "There are no results" + str(x) + "levels downstream " + targetGene
 	except ValueError:
-		print "There were no matches for the query sequence"
 		ToWrite = ["There were no matches for the query sequence"]
 
 	return ToWrite
 
-def WriteResults(ToWrite, PathToWrite):
-	with open(PathToWrite, "w") as r:
-		for result in ToWrite:
-			r.write(result)
+def WriteResults(ToWrite, PathToWrite, referenceFile):
+	if 'There were no matches' not in ToWrite[0]:
+		print 'Writing the results'
+		with open(PathToWrite, "w") as r:
+			for result in ToWrite:
+				r.write(result)
+	else:
+		print "There were no matches for the query sequence at " + referenceFile
 
 def ReadFASTAFile(FASTAfile):
 	NameSeq = []
 	Sequence = []
+	sequenceLength = []
 	handle = open(FASTAfile, "rU")
 	records = list(SeqIO.parse(handle, "fasta"))
 	handle.close()
 	for record in records:
 		NameSeq.append(str(record.description))
 		Sequence.append(str(record.seq))
-	return NameSeq,Sequence
+		sequenceLength.append(len(str(record.seq)))
+	return NameSeq,Sequence,sequenceLength
 
 def SearchAndDownload(target_bug,target_dir,file_type,dirToUse):
 

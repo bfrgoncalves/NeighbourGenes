@@ -15,7 +15,7 @@ Arguments
 =========
 
 * `-i` Input fasta file -> Single or multiple fasta file to be used as query for the BLASTp searches
-* `-t` Directory to look for -> Directory to be looked for inside ftp://ftp.ncbi.nlm.nih.gov/genomes/ . Example: `/Bacteria_DRAFT`
+* `-t` Directory to look for -> Directory to look for inside ftp://ftp.ncbi.nlm.nih.gov/genomes/ . Example: `/Bacteria_DRAFT`
 * `-b` Target bacteria name -> Specie to be searched on the ftp://ftp.ncbi.nlm.nih.gov/genomes/ and to be used as reference for the BLASTp searches
 * `-r` Target directory for downloaded files -> Directory were all files downloaded from ftp://ftp.ncbi.nlm.nih.gov/genomes/Bacteria/ will be placed
 * `-f` File type to be downloaded -> file extension to be downloaded from ftp://ftp.ncbi.nlm.nih.gov/genomes/Bacteria/. Currently only .faa is supported
@@ -24,9 +24,11 @@ Arguments
 * `-o` Target directory for the results -> Directory where the files with the genes upstream and downstream of the query genes will be placed
 
 
-Test Command
+Test Commands
 ============
 
 On the cmd line at the application directory type:
 
-`python checkNeighbors.py -i test.fasta -t /Bacteria_DRAFT -b Streptococcus_pneumoniae_670_6B -r downloads -f .faa -u 3 -d 3 -o results`
+`python checkNeighbors.py -i test.fasta -t /Bacteria -b Streptococcus_pneumoniae_670_6B -r downloads -f .faa -u 3 -d 3 -o results`
+
+`python checkNeighbors.py -i test.fasta -t /Bacteria_DRAFT -b Streptococcus_pneumoniae_7286_06 -r downloads -f .faa -u 3 -d 3 -o results`
