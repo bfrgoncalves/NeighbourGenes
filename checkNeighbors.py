@@ -5,6 +5,10 @@ from datetime import datetime
 import sys
 import argparse
 import shutil
+import urllib
+import tarfile
+from os import listdir
+from os.path import isfile, join
 
 from Bio import SeqIO
 import HTSeq
@@ -15,8 +19,9 @@ from Bio.Blast.Applications import NcbiblastpCommandline
 from CommonFastaFunctions import runBlastParser
 
 def main():
-	parser = argparse.ArgumentParser(description="This program checks for the neighbour genes of a <multi fasta file> by syncing and downloading files from a <local target dir> of ftp://ftp.ncbi.nlm.nih.gov/genomes/Bacteria/ and by peforming BLASTp searches.")
+	parser = argparse.ArgumentParser(description="This program checks for the neighbour genes of a <multi fasta file> by syncing and downloading files from a <local target dir> of ftp://ftp.ncbi.nlm.nih.gov/genomes/ and by peforming BLASTp searches.")
 	parser.add_argument('-i', nargs='?', type=str, help="Input fasta file with proteic sequences", required=True)
+	parser.add_argument('-t', nargs='?', type=str, help="Target URL inside ftp://ftp.ncbi.nlm.nih.gov/genomes/", required=True)
 	parser.add_argument('-b', nargs='?', type=str, help="Target bacteria", required=True)
 	parser.add_argument('-r', nargs='?', type=str, help="Target directory for downloaded files", required=True)
 	parser.add_argument('-f', nargs='?', type=str, help='Target file type. Currently only .faa can be used.', required=True)
@@ -33,8 +38,9 @@ def main():
 	numberUpstream =args.u
 	numberDownstream =args.d
 	PathToWrite = args.o
+	targetURL = args.t
 
-	downloadedFiles = SearchAndDownload(target_bug,target_dir,file_type)
+	downloadedFiles = SearchAndDownload(target_bug,target_dir,file_type, targetURL)
 
 	DataBaseFolder = os.path.join(target_dir,'Databases')
 	if not os.path.isdir(DataBaseFolder):
@@ -130,21 +136,25 @@ def BLASTp(queryFile, dbName, blast_out_path):
 
 
 def GetNeighbours(arrayOfGenes, arrayOfSequences, targetGene, queryName, querySequence, numberUpstream, numberDownstream):
-	targetIndex = arrayOfGenes.index(targetGene)
-	ToWrite = []
-	for x in range(targetIndex-numberUpstream, targetIndex):
-		try:
-			ToWrite.append('>'+arrayOfGenes[x]+"\n"+arrayOfSequences[x]+'\n')
-		except IndexError:
-			print "There are no genes Upstream " + arrayOfGenes[x]
+	try:
+		targetIndex = arrayOfGenes.index(targetGene)
+		ToWrite = []
+		for x in range(targetIndex-numberUpstream, targetIndex):
+			try:
+				ToWrite.append('>'+arrayOfGenes[x]+"\n"+arrayOfSequences[x]+'\n')
+			except IndexError:
+				print "There are no results "+ str(x) + "levels upstream " + targetGene
 
-	ToWrite.append('>'+queryName+'\n'+querySequence)
-	
-	for x in range(targetIndex, targetIndex+numberDownstream+1):
-		try:
-			ToWrite.append('>'+arrayOfGenes[x]+"\n"+arrayOfSequences[x]+'\n')
-		except IndexError:
-			print "There are no genes Downstream " + arrayOfGenes[x]
+		ToWrite.append('>'+queryName+'\n'+querySequence+'\n')
+		
+		for x in range(targetIndex+1, targetIndex+numberDownstream+1):
+			try:
+				ToWrite.append('>'+arrayOfGenes[x]+"\n"+arrayOfSequences[x]+'\n')
+			except IndexError:
+				print "There are no results" + str(x) + "levels downstream " + targetGene
+	except ValueError:
+		print "There were no matches for the query sequence"
+		ToWrite = ["There were no matches for the query sequence"]
 
 	return ToWrite
 
@@ -164,12 +174,14 @@ def ReadFASTAFile(FASTAfile):
 		Sequence.append(str(record.seq))
 	return NameSeq,Sequence
 
-def SearchAndDownload(target_bug,target_dir,file_type):
+def SearchAndDownload(target_bug,target_dir,file_type,dirToUse):
 
+	ftp = 'ftp.ncbi.nih.gov'
+	subURL = '/genomes' + dirToUse
 	print "Connecting to ftp.ncbi.nih.gov..."	
-	f=ftplib.FTP('ftp.ncbi.nih.gov')
+	f=ftplib.FTP(ftp)
 	f.login()
-	f.cwd('/genomes/Bacteria/')
+	f.cwd(subURL)
 	listing=[]
 	dirs=f.nlst();
 	print "Connected and Dir list retrieved."
@@ -184,6 +196,7 @@ def SearchAndDownload(target_bug,target_dir,file_type):
 			print
 			print "----------------------------------------------"
 			print "Dir: " + item
+
 			targetNames.append(item)
 			#create the dir
 			if not os.path.isdir(os.path.join(target_dir,item)):
@@ -196,32 +209,51 @@ def SearchAndDownload(target_bug,target_dir,file_type):
 				files=f.nlst()
 				for fi in files:
 					if file_type in fi:
-						local_file = os.path.join(target_dir,item,fi)
-						arrayOfFiles.append(local_file)
-						if os.path.isfile(local_file):
-							print "Dir:" + item	
-							print "File " + local_file + " already exists."
-							#get remote modification time			
-							mt = f.sendcmd('MDTM '+ fi)
-							#converting to timestamp
-							nt = datetime.strptime(mt[4:], "%Y%m%d%H%M%S").strftime("%s")
+						mainURL = 'ftp://'+ftp
+						currentURL = os.path.join(subURL,item,fi)
 
-							if int(nt)==int(os.stat(local_file).st_mtime):
-								print fi +" not modified. Download skipped"
-							else:
-								print "New version of "+fi
-								ct+=1
-								DownloadAndSetTimestamp(local_file,fi,nt,f)
-								print "NV Local M timestamp : " + str(os.stat(local_file).st_mtime)
-								print "NV Local A timestamp : " + str(os.stat(local_file).st_atime)
+						if '.tgz' in currentURL:
+							ftpstream = urllib.urlopen(mainURL+currentURL)
+							print 'Extracting ' + fi
+							tar = tarfile.open(fileobj=ftpstream, mode="r|gz")
+							tardir = os.path.join(target_dir,item)
+							tar.extractall(tardir)
+							onlyfiles = [ h for h in listdir(tardir) if isfile(join(tardir,h)) ]
+							for files in onlyfiles:
+								local_file = os.path.join(target_dir,item,files)
+								if '.faa' not in files:
+									os.remove(local_file)
+								else:
+									ct+=1
+									arrayOfFiles.append(local_file)
 
 						else:
-							print "New file: "+fi
-							ct+=1
-							mt = f.sendcmd('MDTM '+ fi)
-							#converting to timestamp
-							nt = datetime.strptime(mt[4:], "%Y%m%d%H%M%S").strftime("%s")
-							DownloadAndSetTimestamp(local_file,fi,nt,f)
+							local_file = os.path.join(target_dir,item,fi)
+							arrayOfFiles.append(local_file)
+							if os.path.isfile(local_file):
+								print "Dir:" + item	
+								print "File " + local_file + " already exists."
+								#get remote modification time			
+								mt = f.sendcmd('MDTM '+ fi)
+								#converting to timestamp
+								nt = datetime.strptime(mt[4:], "%Y%m%d%H%M%S").strftime("%s")
+
+								if int(nt)==int(os.stat(local_file).st_mtime):
+									print fi +" not modified. Download skipped"
+								else:
+									print "New version of "+fi
+									ct+=1
+									DownloadAndSetTimestamp(local_file,fi,nt,f)
+									print "NV Local M timestamp : " + str(os.stat(local_file).st_mtime)
+									print "NV Local A timestamp : " + str(os.stat(local_file).st_atime)
+
+							else:
+								print "New file: "+fi
+								ct+=1
+								mt = f.sendcmd('MDTM '+ fi)
+								#converting to timestamp
+								nt = datetime.strptime(mt[4:], "%Y%m%d%H%M%S").strftime("%s")
+								DownloadAndSetTimestamp(local_file,fi,nt,f)
 			except ftplib.error_temp,  resp:
 				if str(resp) == "450 No files found":
 					print "No "+ file_type +" files in this directory. Skipping"

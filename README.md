@@ -1,6 +1,7 @@
 # Neighboring genes
 
 This program checks for the neighbor genes by syncing and downloading the desired files from ftp://ftp.ncbi.nlm.nih.gov/genomes/Bacteria/ and by performing BLASTp searches.
+If files to be downloaded are compressed, its components are extracted and then used as reference for the BLASTp searches.
 
 Python, Numpy, Biopython and HTSeq are required.
 
@@ -13,7 +14,8 @@ Arguments
 =========
 
 * `-i` Input fasta file -> Single or multiple fasta file to be used as query for the BLASTp searches
-* `-b` Target bacteria name -> Specie to be searched on the ftp://ftp.ncbi.nlm.nih.gov/genomes/Bacteria/ and to be used as reference for the BLASTp searches
+* `-t` Directory to look for -> Directory to be looked for inside ftp://ftp.ncbi.nlm.nih.gov/genomes/ . Example: `/Bacteria_DRAFT`
+* `-b` Target bacteria name -> Specie to be searched on the ftp://ftp.ncbi.nlm.nih.gov/genomes/ and to be used as reference for the BLASTp searches
 * `-r` Target directory for downloaded files -> Directory were all files downloaded from ftp://ftp.ncbi.nlm.nih.gov/genomes/Bacteria/ will be placed
 * `-f` File type to be downloaded -> file extension to be downloaded from ftp://ftp.ncbi.nlm.nih.gov/genomes/Bacteria/. Currently only .faa is supported
 * `-u` Number of genes upstream -> Number of result genes upstream of the query sequence
@@ -26,4 +28,4 @@ Test Command
 
 On the cmd line at the application directory type:
 
-`python checkNeighbors.py -i test.fasta -b Streptococcus_pneumoniae_670_6B -r downloads -f .faa -u 3 -d 3 -o results`
+`python checkNeighbors.py -i test.fasta -t /Bacteria_DRAFT -b Streptococcus_pneumoniae_670_6B -r downloads -f .faa -u 3 -d 3 -o results`
