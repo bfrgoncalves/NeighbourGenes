@@ -1,6 +1,7 @@
 # Neighboring genes
 
 This program checks for the neighbor genes by syncing and downloading the desired files from ftp://ftp.ncbi.nlm.nih.gov/genomes/Bacteria/ and by performing BLASTp searches.
+
 If files to be downloaded are compressed, its components are extracted and then used as reference for the BLASTp searches.
 
 Python, Numpy, Biopython and HTSeq are required.
