@@ -149,7 +149,7 @@ def GetNeighbours(arrayOfGenes, arrayOfSequences, targetGene, queryName, querySe
 			except IndexError:
 				print "There are no results "+ str(x) + "levels upstream " + targetGene
 
-		ToWrite.append('>'+queryName+'\n'+querySequence+'\n')
+		#ToWrite.append('>'+queryName+'\n'+querySequence+'\n') # INSERT QUERY ON THE RESULTS
 		
 		for x in range(targetIndex+1, targetIndex+numberDownstream+1):
 			try:
