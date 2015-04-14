@@ -151,7 +151,7 @@ def GetNeighbours(arrayOfGenes, arrayOfSequences, targetGene, queryName, querySe
 
 		#ToWrite.append('>'+queryName+'\n'+querySequence+'\n') # INSERT QUERY ON THE RESULTS
 		
-		for x in range(targetIndex+1, targetIndex+numberDownstream+1):
+		for x in range(targetIndex, targetIndex+numberDownstream+1):
 			try:
 				ToWrite.append('>'+arrayOfGenes[x]+"\n"+arrayOfSequences[x]+'\n')
 			except IndexError:
